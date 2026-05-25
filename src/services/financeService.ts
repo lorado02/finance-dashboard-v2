@@ -1,28 +1,32 @@
 import type { StockData, HistoricalDataPoint } from '../types/stock.types';
-import { STOCK_SYMBOLS, STOCK_NAMES } from '../types/stock.types';
+import { DEFAULT_STOCK_SYMBOLS, STOCK_NAMES, SUPPORTED_USER_SYMBOLS } from '../types/stock.types';
 
 // Mock data generator for demonstration
 // In production, this would call Yahoo Finance API
 class FinanceService {
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cache: Map<string, { data: unknown; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 30000; // 30 seconds
 
   async getStockQuote(symbol: string): Promise<StockData> {
+    const normalizedSymbol = symbol.trim().toUpperCase();
+
+    this.validateSymbol(normalizedSymbol);
+
     // Simulate API delay
     await this.delay(300);
 
     // Check cache
-    const cached = this.getFromCache<StockData>(`quote-${symbol}`);
+    const cached = this.getFromCache<StockData>(`quote-${normalizedSymbol}`);
     if (cached) return cached;
 
     // Generate mock data
-    const basePrice = this.getBasePrice(symbol);
+    const basePrice = this.getBasePrice(normalizedSymbol);
     const change = (Math.random() - 0.5) * 10;
     const changePercent = (change / basePrice) * 100;
 
     const data: StockData = {
-      symbol,
-      name: STOCK_NAMES[symbol] || symbol,
+      symbol: normalizedSymbol,
+      name: STOCK_NAMES[normalizedSymbol] || normalizedSymbol,
       price: basePrice + change,
       change,
       changePercent,
@@ -31,7 +35,7 @@ class FinanceService {
       timestamp: Date.now(),
     };
 
-    this.setCache(`quote-${symbol}`, data);
+    this.setCache(`quote-${normalizedSymbol}`, data);
     return data;
   }
 
@@ -44,13 +48,17 @@ class FinanceService {
     symbol: string,
     period: 'current' | '7days' | 'quarter'
   ): Promise<HistoricalDataPoint[]> {
+    const normalizedSymbol = symbol.trim().toUpperCase();
+
+    this.validateSymbol(normalizedSymbol);
+
     await this.delay(500);
 
-    const cached = this.getFromCache<HistoricalDataPoint[]>(`historical-${symbol}-${period}`);
+    const cached = this.getFromCache<HistoricalDataPoint[]>(`historical-${normalizedSymbol}-${period}`);
     if (cached) return cached;
 
     const dataPoints = this.getDataPointCount(period);
-    const basePrice = this.getBasePrice(symbol);
+    const basePrice = this.getBasePrice(normalizedSymbol);
     const data: HistoricalDataPoint[] = [];
 
     const now = Date.now();
@@ -74,13 +82,24 @@ class FinanceService {
       });
     }
 
-    this.setCache(`historical-${symbol}-${period}`, data);
+    this.setCache(`historical-${normalizedSymbol}-${period}`, data);
     return data;
   }
 
   async getAllStocksData(): Promise<StockData[]> {
-    const symbols = Object.values(STOCK_SYMBOLS);
-    return this.getBatchQuotes(symbols);
+    return this.getBatchQuotes(DEFAULT_STOCK_SYMBOLS);
+  }
+
+  getSupportedUserSymbols(): string[] {
+    return [...SUPPORTED_USER_SYMBOLS];
+  }
+
+  private validateSymbol(symbol: string): void {
+    const supportedSymbols = new Set<string>([...DEFAULT_STOCK_SYMBOLS, ...SUPPORTED_USER_SYMBOLS]);
+
+    if (!supportedSymbols.has(symbol)) {
+      throw new Error(`Symbol "${symbol}" is invalid or unavailable.`);
+    }
   }
 
   private getBasePrice(symbol: string): number {
@@ -90,6 +109,11 @@ class FinanceService {
       ORCL: 120,
       SAP: 140,
       CRM: 220,
+      AAPL: 195,
+      GOOGL: 175,
+      AMZN: 185,
+      TSLA: 175,
+      NVDA: 950,
     };
     return basePrices[symbol] || 100;
   }
@@ -137,7 +161,7 @@ class FinanceService {
     return cached.data as T;
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: unknown): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),

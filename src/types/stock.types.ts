@@ -33,12 +33,29 @@ export const STOCK_SYMBOLS = {
   SALESFORCE: 'CRM'
 } as const;
 
+export const DEFAULT_STOCK_SYMBOLS = Object.values(STOCK_SYMBOLS);
+
 export const STOCK_NAMES: Record<string, string> = {
   IBM: 'IBM Corporation',
   MSFT: 'Microsoft Corporation',
   ORCL: 'Oracle Corporation',
   SAP: 'SAP SE',
-  CRM: 'Salesforce Inc.'
+  CRM: 'Salesforce Inc.',
+  AAPL: 'Apple Inc.',
+  GOOGL: 'Alphabet Inc.',
+  AMZN: 'Amazon.com, Inc.',
+  TSLA: 'Tesla, Inc.',
+  NVDA: 'NVIDIA Corporation'
 };
+
+export const SUPPORTED_USER_SYMBOLS = [
+  'AAPL',
+  'GOOGL',
+  'AMZN',
+  'TSLA',
+  'NVDA'
+] as const;
+
+export type UserSupportedSymbol = typeof SUPPORTED_USER_SYMBOLS[number];
 
 // Made with Bob
